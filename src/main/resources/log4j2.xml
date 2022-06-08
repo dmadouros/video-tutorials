@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+    <Properties>
+        <Property name="appenderToUse">${env:LOG4J_LAYOUT:-json}</Property>
+    </Properties>
+
+    <Appenders>
+        <Console name="local" target="SYSTEM_OUT" follow="true">
+            <PatternLayout disableAnsi="false"
+                           pattern="%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}} %highlight{${LOG_LEVEL_PATTERN:-%5p}}{FATAL=red blink, ERROR=red, WARN=yellow bold, INFO=green, DEBUG=magenta bold, TRACE=blue} %style{%C{1.}}{cyan} %style{%X}{blue}: %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%xEx}"/>
+        </Console>
+        <Console name="json" target="SYSTEM_OUT" follow="true">
+            <JSONLayout compact="true" eventEol="true" properties="true" stacktraceAsString="true"/>
+        </Console>
+    </Appenders>
+
+    <Loggers>
+        <Logger name="Exposed" level="debug"/>
+        <Root level="${env:LOG_LEVEL:-info}">
+            <AppenderRef ref="${appenderToUse}"/>
+        </Root>
+    </Loggers>
+</Configuration>
