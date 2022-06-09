@@ -6,10 +6,22 @@ services:
     ports:
       - "8081:8080"
     environment:
-#      - TRELLO_DATABASE_URL=jdbc:postgresql://trello.db:5432/trello?user=trello&password=trello
+      - VIDEO_TUTORIALS_DATABASE_URL=jdbc:postgresql://video-tutorials.db:5432/video_tutorials?user=video_tutorials&password=video_tutorials
       - LOG4J_LAYOUT=local
     depends_on:
       - video-tutorials.eventstore.db
+      - video-tutorials.db
+
+  video-tutorials.db:
+    image: postgres
+    ports:
+      - "5432"
+    volumes:
+      - video_tutorials_db_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=video_tutorials
+      - POSTGRES_PASSWORD=video_tutorials
+      - POSTGRES_DB=video_tutorials
 
   video-tutorials.eventstore.db:
     image: eventstore/eventstore:21.10.2-buster-slim
@@ -36,3 +48,4 @@ services:
 volumes:
   eventstore-volume-data:
   eventstore-volume-logs:
+  video_tutorials_db_data:

@@ -1,0 +1,22 @@
+databaseChangeLog:
+
+  - changeSet:
+      id: create_pages_table
+      author: David
+      changes:
+        - createTable:
+            tableName: pages
+            columns:
+              - column:
+                  name: page_name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: page_name_pkey
+              - column:
+                  name: page_data
+                  type: JSONB
+                  defaultValue: "{}"
+                  constraints:
+                    nullable: false
