@@ -36,7 +36,7 @@ services:
       - EVENTSTORE_ENABLE_EXTERNAL_TCP=true
       - EVENTSTORE_ENABLE_ATOM_PUB_OVER_HTTP=true
     ports:
-      - "1114:1113"
+      - "1113"
       - "2114:2113"
     volumes:
       - type: volume

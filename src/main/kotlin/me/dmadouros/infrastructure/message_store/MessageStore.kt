@@ -79,7 +79,7 @@ class MessageStore(private val client: EventStoreDBClient, private val objectMap
 //    }
 
     private data class PositionEvent(override val data: Data) :
-        DomainEventDto<PositionEvent.Data>(type = "Read", traceId = "", userId = "", data = data) {
+        DomainEventDto<PositionEvent.Data>(type = "Read", data = data) {
         data class Data(val position: Long)
     }
 

@@ -2,6 +2,7 @@ package me.dmadouros.infrastructure.database
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import org.apache.logging.log4j.LogManager
 import org.jetbrains.exposed.sql.ColumnType
 import org.jetbrains.exposed.sql.IntegerColumnType
 import org.jetbrains.exposed.sql.TextColumnType
@@ -11,6 +12,8 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import java.sql.ResultSet
 
 class PagesRepository(private val objectMapper: ObjectMapper) {
+    private val logger = LogManager.getLogger()
+
     fun ensurePage(pageName: String, initialData: String) {
         val query = """
             INSERT INTO pages(page_name, page_data)
@@ -68,6 +71,8 @@ class PagesRepository(private val objectMapper: ObjectMapper) {
                 stmt = conn.prepareStatement(query, false)
                 stmt.fillParameters(params)
                 stmt.executeUpdate()
+            } catch (e: Exception) {
+                logger.error(e)
             } finally {
                 stmt?.closeIfPossible()
             }
@@ -92,6 +97,9 @@ class PagesRepository(private val objectMapper: ObjectMapper) {
                     results.add(rowMapper(rs))
                 }
                 results
+            } catch (e: Exception) {
+                logger.error(e)
+                emptyList()
             } finally {
                 rs?.close()
                 stmt?.closeIfPossible()
