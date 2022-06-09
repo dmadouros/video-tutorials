@@ -1,4 +1,4 @@
-package me.dmadouros.persistence
+package me.dmadouros.infrastructure.message_store
 
 import com.eventstore.dbclient.AppendToStreamOptions
 import com.eventstore.dbclient.EventData
@@ -12,13 +12,17 @@ import com.eventstore.dbclient.SubscriptionFilter
 import com.eventstore.dbclient.SubscriptionListener
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import me.dmadouros.persistence.dtos.DomainEventDto
+import me.dmadouros.infrastructure.message_store.dtos.DomainEventDto
 import java.util.UUID
 import java.util.concurrent.ExecutionException
 
 typealias EventHandler = (ResolvedEvent) -> Unit
 
 class MessageStore(private val client: EventStoreDBClient, private val objectMapper: ObjectMapper) {
+    companion object {
+        const val ANY_STREAM = "\$any"
+    }
+
     fun <T> writeEvent(streamName: String, event: DomainEventDto<T>, expectedVersion: Long? = null) {
         val eventData = EventData
             .builderAsJson(UUID.fromString(event.id), event.type, event)
@@ -40,24 +44,8 @@ class MessageStore(private val client: EventStoreDBClient, private val objectMap
 
         val listener: SubscriptionListener = object : SubscriptionListener() {
             override fun onEvent(subscription: Subscription, event: ResolvedEvent) {
-                handleEvent(event)
-                updateReadPosition(event.originalEvent.position)
-            }
-
-            private fun updateReadPosition(position: Position) {
-                writeEvent(
-                    subscriberStreamName,
-                    PositionEvent(
-                        data = PositionEvent.Data(
-                            position = position.commitUnsigned
-                        )
-                    )
-                )
-            }
-
-            private fun handleEvent(event: ResolvedEvent) {
-                val eventHandler = eventHandlers[event.originalEvent.eventType] ?: eventHandlers["\$any"]
-                eventHandler?.let { it(event) }
+                handleEvent(eventHandlers, event)
+                updateReadPosition(subscriberStreamName, event.originalEvent.position)
             }
         }
 
@@ -66,6 +54,7 @@ class MessageStore(private val client: EventStoreDBClient, private val objectMap
             .build()
         val position = loadPosition(subscriberStreamName)
         val options = SubscribeToAllOptions.get().filter(filter).fromPosition(Position(position, position))
+
         client.subscribeToAll(listener, options)
     }
 
@@ -90,7 +79,7 @@ class MessageStore(private val client: EventStoreDBClient, private val objectMap
 //    }
 
     private data class PositionEvent(override val data: Data) :
-        DomainEventDto<PositionEvent.Data>(type = "Read", traceId = "", data = data) {
+        DomainEventDto<PositionEvent.Data>(type = "Read", traceId = "", userId = "", data = data) {
         data class Data(val position: Long)
     }
 
@@ -109,5 +98,21 @@ class MessageStore(private val client: EventStoreDBClient, private val objectMap
         return client.readStream(subscriberStreamName, 1, options).get()
             .events
             .firstOrNull()?.let { objectMapper.readValue<PositionEvent>(it.originalEvent.eventData) }
+    }
+
+    private fun updateReadPosition(subscriberStreamName: String, position: Position) {
+        writeEvent(
+            subscriberStreamName,
+            PositionEvent(
+                data = PositionEvent.Data(
+                    position = position.commitUnsigned
+                )
+            )
+        )
+    }
+
+    private fun handleEvent(eventHandlers: Map<String, EventHandler>, event: ResolvedEvent) {
+        val eventHandler = eventHandlers[event.originalEvent.eventType] ?: eventHandlers[ANY_STREAM]
+        eventHandler?.let { it(event) }
     }
 }

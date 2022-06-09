@@ -7,6 +7,7 @@ services:
       - "8081:8080"
     environment:
       - VIDEO_TUTORIALS_DATABASE_URL=jdbc:postgresql://video-tutorials.db:5432/video_tutorials?user=video_tutorials&password=video_tutorials
+      - VIDEO_TUTORIALS_EVENTSTOREDB_URL=esdb://admin:changeit@video-tutorials.eventstore.db:2113?tls=false
       - LOG4J_LAYOUT=local
     depends_on:
       - video-tutorials.eventstore.db
