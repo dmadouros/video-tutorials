@@ -10,6 +10,7 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import me.dmadouros.domain.aggregators.HomePageAggregator
+import me.dmadouros.domain.components.IdentityComponent
 import me.dmadouros.domain.events.ViewedEvent
 import me.dmadouros.infrastructure.database.PagesRepository
 import me.dmadouros.infrastructure.message_store.MessageStore
@@ -21,6 +22,8 @@ fun Application.configureVideoTutorials(
 ) {
     val aggregators = listOf(HomePageAggregator(messageStore, objectMapper, pagesRepository))
     aggregators.forEach { it.start() }
+    val components = listOf(IdentityComponent(messageStore, objectMapper))
+    components.forEach { it.start() }
 
     routing {
         get("/") {

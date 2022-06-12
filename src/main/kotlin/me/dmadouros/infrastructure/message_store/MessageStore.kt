@@ -5,7 +5,9 @@ import com.eventstore.dbclient.EventData
 import com.eventstore.dbclient.EventStoreDBClient
 import com.eventstore.dbclient.Position
 import com.eventstore.dbclient.ReadStreamOptions
+import com.eventstore.dbclient.RecordedEvent
 import com.eventstore.dbclient.ResolvedEvent
+import com.eventstore.dbclient.StreamNotFoundException
 import com.eventstore.dbclient.SubscribeToAllOptions
 import com.eventstore.dbclient.Subscription
 import com.eventstore.dbclient.SubscriptionFilter
@@ -59,25 +61,29 @@ class MessageStore(private val client: EventStoreDBClient, private val objectMap
         client.subscribeToAll(listener, options)
     }
 
-//    fun readEvents(category: String, id: String): List<RecordedEvent> {
-//        val options = ReadStreamOptions.get()
-//            .forwards()
-//            .fromStart()
-//
-//        return client.readStream("$category-$id", options).get()
-//            .events
-//            .map { it.originalEvent }
-//    }
+    fun <T> fetch(streamName: String, projection: Projection<T>): T =
+        project(read(streamName), projection)
 
-//    fun readAllEvents(): List<RecordedEvent> {
-//        val options = ReadAllOptions.get()
-//            .forwards()
-//            .fromStart()
-//
-//        return client.readAll(options).get()
-//            .events
-//            .map { it.originalEvent }
-//    }
+    private fun read(streamName: String): List<RecordedEvent> {
+        val options = ReadStreamOptions.get()
+            .forwards()
+            .fromStart()
+
+        return try {
+            client.readStream(streamName, options).get()
+                .events
+                .map { it.originalEvent }
+        } catch (e: ExecutionException) {
+            when (e.cause) {
+                is StreamNotFoundException -> {
+                    return emptyList()
+                }
+                else -> {
+                    throw e
+                }
+            }
+        }
+    }
 
     private data class PositionEvent(override val data: Data) :
         DomainEventDto<PositionEvent.Data>(type = "Read", data = data) {
@@ -115,5 +121,11 @@ class MessageStore(private val client: EventStoreDBClient, private val objectMap
     private fun handleEvent(eventHandlers: Map<String, EventHandler>, event: ResolvedEvent) {
         val eventHandler = eventHandlers[event.originalEvent.eventType] ?: eventHandlers[ANY_STREAM]
         eventHandler?.let { it(event) }
+    }
+
+    private fun <T> project(events: List<RecordedEvent>, projection: Projection<T>): T {
+        return events.fold(projection.init) { memo, event ->
+            projection.handlers[event.eventType]?.let { handler -> handler(memo, event) } ?: memo
+        }
     }
 }
