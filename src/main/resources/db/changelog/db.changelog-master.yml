@@ -1,3 +1,5 @@
 databaseChangeLog:
   - include:
       file: db/changelog/v0-initial-setup.yml
+  - include:
+      file: db/changelog/v1-add-user-registrations.yml

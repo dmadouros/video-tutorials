@@ -6,8 +6,10 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
+import me.dmadouros.api.configureRegisterUsers
 import me.dmadouros.api.configureVideoTutorials
 import me.dmadouros.infrastructure.database.PagesRepository
+import me.dmadouros.infrastructure.database.UserRegistrationsRepository
 import me.dmadouros.infrastructure.message_store.MessageStore
 import me.dmadouros.plugins.configureCallId
 import me.dmadouros.plugins.configureDatabase
@@ -19,6 +21,7 @@ fun main() {
         val objectMapper = createObjectMapper()
         val messageStore = createMessageStore(eventStoreDbClient, objectMapper)
         val pagesRepository = createPagesRepository(objectMapper)
+        val userRegistrationsRepository = createUserRegistrationsRepository()
 
         configureCallId()
         configureDatabase()
@@ -26,6 +29,10 @@ fun main() {
             messageStore = messageStore,
             objectMapper = objectMapper,
             pagesRepository = pagesRepository,
+        )
+        configureRegisterUsers(
+            messageStore = messageStore,
+            userRegistrationsRepository = userRegistrationsRepository
         )
         configureSerialization()
     }.start(wait = true)
@@ -35,6 +42,9 @@ private fun createPagesRepository(objectMapper: ObjectMapper) =
     PagesRepository(
         objectMapper = objectMapper
     )
+
+private fun createUserRegistrationsRepository() =
+    UserRegistrationsRepository()
 
 private fun createMessageStore(
     eventStoreDbClient: EventStoreDBClient,

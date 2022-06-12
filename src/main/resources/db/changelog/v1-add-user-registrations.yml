@@ -1,0 +1,26 @@
+databaseChangeLog:
+
+  - changeSet:
+      id: create_user_registrations_table
+      author: David
+      changes:
+        - createTable:
+            tableName: user_registrations
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: user_registrations_id_pkey
+              - column:
+                  name: email
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: password_hash
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false

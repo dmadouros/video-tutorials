@@ -13,6 +13,7 @@ import com.eventstore.dbclient.SubscriptionListener
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import me.dmadouros.infrastructure.message_store.dtos.DomainEventDto
+import me.dmadouros.infrastructure.message_store.dtos.MessageDto
 import java.util.UUID
 import java.util.concurrent.ExecutionException
 
@@ -23,7 +24,7 @@ class MessageStore(private val client: EventStoreDBClient, private val objectMap
         const val ANY_STREAM = "\$any"
     }
 
-    fun <T> writeEvent(streamName: String, event: DomainEventDto<T>, expectedVersion: Long? = null) {
+    fun <T> write(streamName: String, event: MessageDto<T>, expectedVersion: Long? = null) {
         val eventData = EventData
             .builderAsJson(UUID.fromString(event.id), event.type, event)
             .build()
@@ -101,7 +102,7 @@ class MessageStore(private val client: EventStoreDBClient, private val objectMap
     }
 
     private fun updateReadPosition(subscriberStreamName: String, position: Position) {
-        writeEvent(
+        write(
             subscriberStreamName,
             PositionEvent(
                 data = PositionEvent.Data(

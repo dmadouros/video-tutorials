@@ -52,6 +52,10 @@ dependencies {
     implementation("org.postgresql:postgresql:42.3.4")
     implementation("org.yaml:snakeyaml:1.30")
 
+    implementation("io.konform:konform-jvm:0.4.0")
+
+    implementation("org.springframework.security:spring-security-crypto:5.7.1")
+
     testImplementation("io.ktor:ktor-server-tests-jvm:$ktorVersion")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
 
