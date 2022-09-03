@@ -1,6 +1,6 @@
 package me.dmadouros.domain.aggregators
 
-import com.eventstore.dbclient.ResolvedEvent
+import com.eventstore.dbclient.RecordedEvent
 import com.fasterxml.jackson.databind.ObjectMapper
 import me.dmadouros.domain.Aggregator
 import me.dmadouros.infrastructure.database.PagesRepository
@@ -12,8 +12,8 @@ class HomePageAggregator(
     private val objectMapper: ObjectMapper,
     private val repository: PagesRepository,
 ) : Aggregator {
-    private val incrementVideosWatched = { event: ResolvedEvent ->
-        val globalPosition = event.originalEvent.position.commitUnsigned
+    private val incrementVideosWatched = { event: RecordedEvent ->
+        val globalPosition = event.position.commitUnsigned
 
         repository.incrementVideosWatched(globalPosition)
     }

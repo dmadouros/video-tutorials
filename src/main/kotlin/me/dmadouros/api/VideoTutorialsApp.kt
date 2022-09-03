@@ -10,19 +10,30 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import me.dmadouros.domain.aggregators.HomePageAggregator
+import me.dmadouros.domain.aggregators.UserCredentials
 import me.dmadouros.domain.components.IdentityComponent
+import me.dmadouros.domain.components.SendEmailComponent
+import me.dmadouros.infrastructure.message_store.Subscription
 import me.dmadouros.domain.events.ViewedEvent
 import me.dmadouros.infrastructure.database.PagesRepository
+import me.dmadouros.infrastructure.database.UserRegistrationsRepository
 import me.dmadouros.infrastructure.message_store.MessageStore
 
 fun Application.configureVideoTutorials(
     messageStore: MessageStore,
     objectMapper: ObjectMapper,
     pagesRepository: PagesRepository,
+    userRegistrationsRepository: UserRegistrationsRepository
 ) {
-    val aggregators = listOf(HomePageAggregator(messageStore, objectMapper, pagesRepository))
+    val aggregators = listOf(
+        HomePageAggregator(messageStore, objectMapper, pagesRepository),
+        UserCredentials(messageStore, objectMapper, userRegistrationsRepository)
+    )
     aggregators.forEach { it.start() }
-    val components = listOf(IdentityComponent(messageStore, objectMapper))
+    val components = listOf(
+        Subscription(messageStore, IdentityComponent(messageStore, objectMapper)),
+        Subscription(messageStore, SendEmailComponent(messageStore, "", objectMapper))
+    )
     components.forEach { it.start() }
 
     routing {

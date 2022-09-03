@@ -1,5 +1,5 @@
 package me.dmadouros.domain
 
-interface Aggregator {
+interface Component {
     fun start()
 }

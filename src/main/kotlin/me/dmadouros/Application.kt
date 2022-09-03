@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
+import me.dmadouros.api.configureAuthenticate
 import me.dmadouros.api.configureRegisterUsers
 import me.dmadouros.api.configureVideoTutorials
 import me.dmadouros.infrastructure.database.PagesRepository
@@ -29,8 +30,13 @@ fun main() {
             messageStore = messageStore,
             objectMapper = objectMapper,
             pagesRepository = pagesRepository,
+            userRegistrationsRepository = userRegistrationsRepository,
         )
         configureRegisterUsers(
+            messageStore = messageStore,
+            userRegistrationsRepository = userRegistrationsRepository
+        )
+        configureAuthenticate(
             messageStore = messageStore,
             userRegistrationsRepository = userRegistrationsRepository
         )

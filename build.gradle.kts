@@ -2,6 +2,7 @@ val exposedVersion: String by project
 val kotlinVersion: String by project
 val ktorVersion: String by project
 val log4jVersion: String by project
+val testContainersVersion: String by project
 
 plugins {
     application
@@ -9,6 +10,7 @@ plugins {
     id("org.jlleitschuh.gradle.ktlint") version "10.2.1"
     id("com.google.cloud.tools.jib") version "3.2.1"
     id("org.liquibase.gradle") version "2.1.1"
+    jacoco
 }
 
 group = "me.dmadouros"
@@ -28,6 +30,7 @@ repositories {
 dependencies {
     implementation(platform("org.apache.logging.log4j:log4j-bom:$log4jVersion"))
     implementation(platform("org.jetbrains.exposed:exposed-bom:$exposedVersion"))
+    implementation(platform("org.testcontainers:testcontainers-bom:$testContainersVersion"))
 
     implementation("io.ktor:ktor-server-content-negotiation-jvm:$ktorVersion")
     implementation("io.ktor:ktor-server-core-jvm:$ktorVersion")
@@ -56,8 +59,14 @@ dependencies {
 
     implementation("org.springframework.security:spring-security-crypto:5.7.1")
 
+    testImplementation("org.testcontainers:testcontainers")
+    testImplementation("org.testcontainers:postgresql")
+    testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("io.ktor:ktor-server-tests-jvm:$ktorVersion")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
+    testImplementation("io.mockk:mockk:1.12.5")
+    testImplementation("org.assertj:assertj-core:3.23.1")
+    testImplementation("org.awaitility:awaitility-kotlin:4.2.0")
 
     liquibaseRuntime("info.picocli:picocli:4.6.3")
     liquibaseRuntime("org.liquibase:liquibase-core:4.8.0")
@@ -77,4 +86,11 @@ liquibase {
             "url" to "jdbc:postgresql://localhost:5432/provider"
         )
     }
+}
+
+tasks.test {
+    finalizedBy(tasks.jacocoTestReport) // report is always generated after tests run
+}
+tasks.jacocoTestReport {
+    dependsOn(tasks.test) // tests are required to run before generating the report
 }

@@ -7,28 +7,30 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.call
 import io.ktor.server.plugins.callid.callId
 import io.ktor.server.request.receive
-import io.ktor.server.response.respond
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
-import me.dmadouros.api.dtos.RegisterUserDto
-import me.dmadouros.domain.workflows.RegisterUserWorkflow
+import me.dmadouros.api.dtos.LoginDto
+import me.dmadouros.domain.workflows.AuthenticateWorkflow
 import me.dmadouros.infrastructure.database.UserRegistrationsRepository
 import me.dmadouros.infrastructure.message_store.MessageStore
 
-fun Application.configureRegisterUsers(
+fun Application.configureAuthenticate(
     messageStore: MessageStore,
     userRegistrationsRepository: UserRegistrationsRepository,
 ) {
     routing {
-        post("/register") {
-            val registerUserDto = call.receive<RegisterUserDto>()
+        post("/login") {
+            val loginDto = call.receive<LoginDto>()
             call.callId?.let { traceId ->
-                RegisterUserWorkflow(
+                AuthenticateWorkflow(
                     messageStore = messageStore,
                     userRegistrationsRepository = userRegistrationsRepository
-                ).call(registerUserDto, traceId)
-                    .onSuccess { call.respond(HttpStatusCode.Created) }
-                    .onFailure { call.respond(HttpStatusCode.BadRequest, it) }
+                )
+                    .exec(loginDto = loginDto, traceId = traceId)
+                    .onSuccess { call.response.status(HttpStatusCode.OK) }
+                    .onFailure { _ ->
+                        call.response.status(HttpStatusCode.Unauthorized)
+                    }
             }
         }
     }

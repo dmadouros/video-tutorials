@@ -86,12 +86,12 @@ class PagesRepository(private val objectMapper: ObjectMapper) {
     ): List<T> {
         return transaction {
             var stmt: PreparedStatementApi? = null
-            val rs: ResultSet? = null
+            var rs: ResultSet? = null
             try {
                 val conn = TransactionManager.current().connection
                 stmt = conn.prepareStatement(query, false)
                 stmt.fillParameters(params)
-                val rs = stmt.executeQuery()
+                rs = stmt.executeQuery()
                 val results = ArrayList<T>()
                 while (rs.next()) {
                     results.add(rowMapper(rs))

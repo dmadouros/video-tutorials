@@ -19,7 +19,7 @@ import me.dmadouros.infrastructure.message_store.dtos.MessageDto
 import java.util.UUID
 import java.util.concurrent.ExecutionException
 
-typealias EventHandler = (ResolvedEvent) -> Unit
+typealias EventHandler = (RecordedEvent) -> Unit
 
 class MessageStore(private val client: EventStoreDBClient, private val objectMapper: ObjectMapper) {
     companion object {
@@ -51,6 +51,22 @@ class MessageStore(private val client: EventStoreDBClient, private val objectMap
                 updateReadPosition(subscriberStreamName, event.originalEvent.position)
             }
         }
+
+        val filter = SubscriptionFilter.newBuilder()
+            .withStreamNamePrefix("$category-")
+            .build()
+        val position = loadPosition(subscriberStreamName)
+        val options = SubscribeToAllOptions.get().filter(filter).fromPosition(Position(position, position))
+
+        client.subscribeToAll(listener, options)
+    }
+
+    fun createSubscription(
+        category: String,
+        subscriberId: String,
+        listener: SubscriptionListener
+    ) {
+        val subscriberStreamName = "subscriberPosition-$subscriberId"
 
         val filter = SubscriptionFilter.newBuilder()
             .withStreamNamePrefix("$category-")
@@ -120,7 +136,7 @@ class MessageStore(private val client: EventStoreDBClient, private val objectMap
 
     private fun handleEvent(eventHandlers: Map<String, EventHandler>, event: ResolvedEvent) {
         val eventHandler = eventHandlers[event.originalEvent.eventType] ?: eventHandlers[ANY_STREAM]
-        eventHandler?.let { it(event) }
+        eventHandler?.let { it(event.originalEvent) }
     }
 
     private fun <T> project(events: List<RecordedEvent>, projection: Projection<T>): T {

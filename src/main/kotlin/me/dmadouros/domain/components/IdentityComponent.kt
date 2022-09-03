@@ -1,7 +1,6 @@
 package me.dmadouros.domain.components
 
 import com.eventstore.dbclient.RecordedEvent
-import com.eventstore.dbclient.ResolvedEvent
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.github.michaelbull.result.Err
@@ -9,26 +8,25 @@ import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
 import com.github.michaelbull.result.andThen
 import com.github.michaelbull.result.onSuccess
-import me.dmadouros.domain.Aggregator
-import me.dmadouros.domain.AlreadyRegisteredError
 import me.dmadouros.domain.commands.RegisterCommand
+import me.dmadouros.domain.errors.AlreadyRegisteredError
 import me.dmadouros.domain.events.RegisteredEvent
 import me.dmadouros.infrastructure.message_store.EventHandler
 import me.dmadouros.infrastructure.message_store.MessageStore
 import me.dmadouros.infrastructure.message_store.Projection
+import me.dmadouros.infrastructure.message_store.Subscriber
 
 class IdentityComponent(
     private val messageStore: MessageStore,
     private val objectMapper: ObjectMapper,
-) : Aggregator {
-    override fun start() {
-        messageStore.createSubscription("identity:command", "components:identity:command", commandHandlers())
-    }
+) : Subscriber() {
+    override val category: String = "identity:command"
+    override val subscriberId: String = "components:identity:command"
 
-    private fun commandHandlers(): Map<String, EventHandler> {
+    override fun commandHandlers(): Map<String, EventHandler> {
         return mapOf(
-            "Register" to { command: ResolvedEvent ->
-                val registerCommand = objectMapper.readValue<RegisterCommand>(command.originalEvent.eventData)
+            "Register" to { command: RecordedEvent ->
+                val registerCommand = objectMapper.readValue<RegisterCommand>(command.eventData)
                 Ok(loadIdentity(registerCommand.data.userId))
                     .andThen { ensureNotRegistered(it) }
                     .onSuccess { writeRegisteredEvent(registerCommand) }
@@ -41,8 +39,9 @@ class IdentityComponent(
             override val init: IdentityDto = IdentityDto()
             override val handlers: Map<String, (IdentityDto, RecordedEvent) -> IdentityDto> =
                 mapOf(
-                    "Registered" to { _: IdentityDto, event: RecordedEvent ->
-                        objectMapper.readValue(event.eventData)
+                    "Registered" to { identity: IdentityDto, event: RecordedEvent ->
+                        val registered: RegisteredEvent = objectMapper.readValue(event.eventData)
+                        identity.copy(id = registered.data.userId, email = registered.data.email, isRegistered = true)
                     }
                 )
         }
@@ -64,7 +63,7 @@ class IdentityComponent(
     private fun writeRegisteredEvent(registerCommand: RegisterCommand) {
         val registeredEvent = RegisteredEvent(
             traceId = registerCommand.traceId,
-            userId = registerCommand.userId,
+            actorId = registerCommand.actorId,
             data = RegisteredEvent.Data(
                 userId = registerCommand.data.userId,
                 email = registerCommand.data.email,
@@ -77,7 +76,7 @@ class IdentityComponent(
         messageStore.write(identitySteamName, registeredEvent)
     }
 
-    private data class IdentityDto(
+    data class IdentityDto(
         val id: String? = null,
         val email: String? = null,
         val isRegistered: Boolean = false
